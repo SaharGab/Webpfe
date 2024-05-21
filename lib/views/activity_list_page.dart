@@ -1,37 +1,36 @@
 import 'package:admin_pfe/views/admin/edit_tourist_site_page.dart';
-import 'package:admin_pfe/views/admin/touristsitepage.dart';
-import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 
-class TouristSiteListPage extends StatefulWidget {
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+
+class ActivitiesListPage extends StatefulWidget {
   @override
-  _TouristSiteListPageState createState() => _TouristSiteListPageState();
+  _ActivitiesListPageState createState() => _ActivitiesListPageState();
 }
 
-class _TouristSiteListPageState extends State<TouristSiteListPage> {
-  List<DocumentSnapshot> _touristSites = [];
+class _ActivitiesListPageState extends State<ActivitiesListPage> {
+  List<DocumentSnapshot> _activities = [];
 
   @override
   void initState() {
     super.initState();
     FirebaseFirestore.instance
         .collection('touristSites')
-        .where('category',
-            whereIn: ['Accommodation', 'Cafe & Restaurant', 'To Explore'])
+        .where('category', isEqualTo: 'Activities')
         .snapshots()
         .listen((snapshot) {
-          setState(() {
-            _touristSites = snapshot.docs;
-          });
-        });
+      setState(() {
+        _activities = snapshot.docs;
+      });
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Tourist Sites')),
+      appBar: AppBar(title: Text('Activities')),
       body: SingleChildScrollView(
         scrollDirection: Axis.vertical,
         child: DataTable(
@@ -41,10 +40,10 @@ class _TouristSiteListPageState extends State<TouristSiteListPage> {
             DataColumn(label: Text('Location')),
             DataColumn(label: Text('Description')),
             DataColumn(label: Text('Category')),
+            DataColumn(label: Text('Subcategory')), // Added subcategory column
             DataColumn(label: Text('Actions')),
           ],
-          rows: _touristSites.map((DocumentSnapshot doc) {
-            // Assurez-vous que 'imageUrls' est une liste de chaînes d'URLs valides
+          rows: _activities.map((DocumentSnapshot doc) {
             var imageUrls = List.from(doc.get('imageUrls') ?? []);
             return DataRow(cells: [
               DataCell(
@@ -69,8 +68,7 @@ class _TouristSiteListPageState extends State<TouristSiteListPage> {
                                 },
                                 errorBuilder: (BuildContext context,
                                     Object exception, StackTrace? stackTrace) {
-                                  return const Text(
-                                      'Failed to load image'); // Texte affiché en cas d'erreur
+                                  return const Text('Failed to load image');
                                 },
                               )
                             : CachedNetworkImage(
@@ -89,13 +87,15 @@ class _TouristSiteListPageState extends State<TouristSiteListPage> {
               DataCell(
                 ConstrainedBox(
                   constraints: BoxConstraints(
-                    maxWidth: 150, // Définissez la largeur maximale
+                    maxWidth: 150,
                   ),
                   child: Text(doc['description'] ?? 'N/A',
                       overflow: TextOverflow.ellipsis),
                 ),
               ),
               DataCell(Text(doc['category'] ?? 'N/A')),
+              DataCell(
+                  Text(doc['subcategory'] ?? 'N/A')), // Display subcategory
               DataCell(Row(
                 children: <Widget>[
                   IconButton(
@@ -121,17 +121,6 @@ class _TouristSiteListPageState extends State<TouristSiteListPage> {
             ]);
           }).toList(),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => TouristSitePage()),
-          );
-        },
-        child: Icon(Icons.add),
-        backgroundColor: Color.fromARGB(255, 123, 73, 15),
-        tooltip: 'Add Tourist Site',
       ),
     );
   }

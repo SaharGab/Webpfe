@@ -3,8 +3,9 @@ class TouristSite {
   final String name;
   final String location;
   final String description;
-  final List<String> imageUrls; // Il peut y avoir plusieurs images pour un site
-  final String category; // Stocker l'ID de la catégorie, pas le titre
+  final List<String> imageUrls;
+  final String category;
+  final String? subcategory; // Optional field for subcategory
 
   TouristSite({
     required this.id,
@@ -13,28 +14,32 @@ class TouristSite {
     required this.description,
     required this.imageUrls,
     required this.category,
+    this.subcategory, // Subcategory is optional and depends on the category
   });
 
-  // Convertir un TouristSite en Map
+  /// Converts a TouristSite instance to a map.
   Map<String, dynamic> toMap() {
     return {
       'name': name,
       'location': location,
       'description': description,
       'imageUrls': imageUrls,
-      'categorySites': category,
+      'category': category,
+      if (subcategory != null)
+        'subcategory': subcategory, // Include subcategory if not null
     };
   }
 
-  // Créer un TouristSite à partir d'une Map
+  /// Creates a TouristSite instance from a map.
   factory TouristSite.fromMap(Map<String, dynamic> map, String id) {
     return TouristSite(
       id: id,
-      name: map['name'],
-      location: map['location'],
-      description: map['description'],
-      imageUrls: List<String>.from(map['imageUrls']),
-      category: map['categorySites'],
+      name: map['name'] ?? 'N/A',
+      location: map['location'] ?? 'Unknown location',
+      description: map['description'] ?? 'No description provided',
+      imageUrls: List<String>.from(map['imageUrls'] ?? []),
+      category: map['category'] ?? 'Uncategorized',
+      subcategory: map['subcategory'], // This can be null if not present
     );
   }
 }

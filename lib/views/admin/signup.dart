@@ -16,20 +16,54 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController _fullNameController =
       TextEditingController(); // Contrôleur pour le nom complet
 
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  bool _validateEmail(String email) {
+    // Simple email validation
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+    return emailRegex.hasMatch(email);
+  }
+
+  bool _validatePassword(String password) {
+    // Password must be at least 6 characters
+    return password.length >= 6;
+  }
+
   void _signUp() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final fullName = _fullNameController.text.trim();
+
+    if (!_validateEmail(email)) {
+      _showSnackBar('Please enter a valid email.');
+      return;
+    }
+
+    if (!_validatePassword(password)) {
+      _showSnackBar('Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (fullName.isEmpty) {
+      _showSnackBar('Please enter your full name.');
+      return;
+    }
+
     try {
       // Création de l'utilisateur avec Firebase Auth
       UserCredential userCredential =
           await _auth.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+        email: email,
+        password: password,
       );
 
       // Enregistrement des informations de l'utilisateur, y compris le nom complet, dans Firestore
       await _firestore.collection('admins').doc(userCredential.user!.uid).set({
-        'email': _emailController.text.trim(),
-        'fullName':
-            _fullNameController.text.trim(), // Enregistrement du nom complet
+        'email': email,
+        'fullName': fullName, // Enregistrement du nom complet
         // Ajoute d'autres champs si nécessaire
       });
 
@@ -38,6 +72,8 @@ class _SignUpPageState extends State<SignUpPage> {
       Navigator.pop(context);
     } catch (e) {
       // Gestion des erreurs, par exemple afficher une alerte
+      _showSnackBar(
+          'Failed to sign up: ${e.toString()}'); // Affichage de l'erreur dans un SnackBar
       print(e); // Assurez-vous de gérer l'erreur correctement
     }
   }

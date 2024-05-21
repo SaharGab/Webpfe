@@ -1,3 +1,4 @@
+import 'package:admin_pfe/views/activity_list_page.dart';
 import 'package:admin_pfe/views/admin/eventlistweb.dart';
 import 'package:admin_pfe/views/admin/userlist.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -39,6 +40,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  Stream<int> countDocumentsByCategory(String collection, String category) {
+    return FirebaseFirestore.instance
+        .collection(collection)
+        .where('category', isEqualTo: category)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.length); // Map the snapshot to the count of documents
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -70,6 +80,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   context,
                   MaterialPageRoute(
                       builder: (context) => TouristSiteListPage()),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons
+                  .local_activity_outlined), // Icône pour la gestion des sites touristiques
+              title: Text('Recommended Activities'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ActivitiesListPage()),
                 );
               },
             ),
@@ -125,6 +146,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   icon: Icons.place,
                   stream: countDocuments(
                       'touristSites'), // Assurez-vous que le nom de la collection est correct
+                ),
+                StatCard(
+                  title: "Recommended Activities",
+                  icon: Icons.local_activity,
+                  stream: countDocumentsByCategory('touristSites',
+                      'Activities'), // Assurez-vous que le nom de la collection est correct
                 ),
                 StatCard(
                   title: "Upcoming Events",

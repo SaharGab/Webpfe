@@ -9,6 +9,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:mime_type/mime_type.dart';
 import 'package:path/path.dart' as p;
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 // Use 'universal_html' instead of 'dart:html'
 
@@ -33,6 +35,12 @@ class _TouristSitePageState extends State<TouristSitePage> {
     'Activities',
     'To Explore'
   ];
+  final List<String> subcategories = [
+    'Entertainment',
+    'Cultural',
+    'Relaxation'
+  ];
+  String? subcategory;
 
   Future<void> _pickImages() async {
     final List<XFile>? selectedImages = await _picker.pickMultiImage();
@@ -80,18 +88,28 @@ class _TouristSitePageState extends State<TouristSitePage> {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
       await _uploadImages();
-
-      FirebaseFirestore.instance.collection('touristSites').add({
+      var data = {
         'name': name,
         'location': location,
         'description': description,
         'imageUrls': imageUrls,
         'category': category,
-      }).then((value) {
+        if (subcategory != null)
+          'subcategory': subcategory, // Include subcategory if set
+      };
+
+      FirebaseFirestore.instance
+          .collection('touristSites')
+          .add(data)
+          .then((value) async {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text('Tourist Site Added Successfully!'),
               backgroundColor: Colors.green),
+        );
+        _sendNotification(
+          'New Tourist Site Added',
+          '$name has been added to the list of tourist sites.',
         );
         Navigator.pushReplacement(
           context,
@@ -108,7 +126,37 @@ class _TouristSitePageState extends State<TouristSitePage> {
     }
   }
 
-  @override
+  Future<void> _sendNotification(String title, String body) async {
+    const String serverKey =
+        'YOUR_SERVER_KEY_HERE'; // Remplacez par votre clé de serveur Firebase
+    final Uri uri = Uri.parse('https://fcm.googleapis.com/fcm/send');
+
+    final response = await http.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'key=$serverKey',
+      },
+      body: jsonEncode({
+        'to': '/topics/all',
+        'notification': {
+          'title': title,
+          'body': body,
+        },
+        'data': {
+          'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+          'message': body,
+        },
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      print('Failed to send FCM message: ${response.statusCode}');
+    } else {
+      print('Notification sent: ${response.body}');
+    }
+  }
+
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Add Tourist Site')),
@@ -161,12 +209,34 @@ class _TouristSitePageState extends State<TouristSitePage> {
                   onChanged: (String? newValue) {
                     setState(() {
                       category = newValue!;
+                      subcategory =
+                          null; // Reset subcategory when category changes
                     });
                   },
                   validator: (value) =>
                       value == null ? 'Please select a category' : null,
                   onSaved: (value) => category = value.toString(),
                 ),
+                if (category == 'Activities')
+                  // This conditionally adds the subcategory dropdown
+                  DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                        labelText: 'Subcategory',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.subdirectory_arrow_right)),
+                    value: subcategory,
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        subcategory = newValue;
+                      });
+                    },
+                    items: subcategories.map((String value) {
+                      return DropdownMenuItem(value: value, child: Text(value));
+                    }).toList(),
+                    validator: (value) =>
+                        value == null ? 'Please select a subcategory' : null,
+                    onSaved: (value) => subcategory = value,
+                  ),
                 SizedBox(height: 15),
                 Align(
                   alignment: Alignment.center,
